@@ -102,7 +102,7 @@ if uploaded_file:
     st.pyplot(fig2)
 
     # Optional: Predict future price using user input
-    st.subheader("🔮 Predict Future Price from Input")
+       st.subheader("🔮 Predict Future Price from Input")
     prev_close = st.number_input("Previous Close", min_value=0.0)
     open_price = st.number_input("Open", min_value=0.0)
     high_price = st.number_input("High", min_value=0.0)
@@ -110,16 +110,18 @@ if uploaded_file:
     volume = st.number_input("Volume", min_value=0.0)
 
     if st.button("Predict Next Price"):
-        user_input = [open_price, high_price, low_price, prev_close, 0.0, volume]  # added adjclose = 0.0
-        input_scaled = scaler.transform([user_input])
-        sequence = input_scaled[:, [3]].reshape(1, time_step, 1)  # Use the 'close' value only
+        # Build input in full 6-feature format
+        user_input_raw = [open_price, high_price, low_price, prev_close, 0.0, volume]
+        user_input_scaled = scaler.transform([user_input_raw])[0][3]  # Extract scaled 'close' value
 
-        # Just repeat last 10 closes for demo prediction
-        sequence = np.repeat(sequence, time_step, axis=1)  # shape: (1, 10, 1)
+        # Get last 9 closes from data
+        last_sequence = data[-(time_step - 1):].flatten().tolist()
+        last_sequence.append(user_input_scaled)  # Append user's close input to form full sequence
 
-        prediction_scaled = model.predict(sequence)
+        final_input = np.array(last_sequence).reshape(1, time_step, 1)
 
-        # Pad to inverse transform
+        prediction_scaled = model.predict(final_input)
+
         predicted_price = scaler.inverse_transform(
             np.concatenate((prediction_scaled, np.zeros((1, len(numeric_cols) - 1))), axis=1)
         )[0, 0]
