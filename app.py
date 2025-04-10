@@ -102,7 +102,7 @@ if uploaded_file:
     st.pyplot(fig2)
 
     # Optional: Predict future price using user input
-       st.subheader("🔮 Predict Future Price from Input")
+    st.subheader("🔮 Predict Future Price from Input")
     prev_close = st.number_input("Previous Close", min_value=0.0)
     open_price = st.number_input("Open", min_value=0.0)
     high_price = st.number_input("High", min_value=0.0)
