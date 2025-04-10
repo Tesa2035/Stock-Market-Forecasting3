@@ -110,11 +110,16 @@ if uploaded_file:
     volume = st.number_input("Volume", min_value=0.0)
 
     if st.button("Predict Next Price"):
-        user_input = [prev_close, open_price, high_price, low_price, volume]
+        user_input = [open_price, high_price, low_price, prev_close, 0.0, volume]  # added adjclose = 0.0
         input_scaled = scaler.transform([user_input])
-        sequence = np.array(input_scaled).reshape(1, 1, len(user_input))
+        sequence = input_scaled[:, [3]].reshape(1, time_step, 1)  # Use the 'close' value only
+
+        # Just repeat last 10 closes for demo prediction
+        sequence = np.repeat(sequence, time_step, axis=1)  # shape: (1, 10, 1)
+
         prediction_scaled = model.predict(sequence)
 
+        # Pad to inverse transform
         predicted_price = scaler.inverse_transform(
             np.concatenate((prediction_scaled, np.zeros((1, len(numeric_cols) - 1))), axis=1)
         )[0, 0]
