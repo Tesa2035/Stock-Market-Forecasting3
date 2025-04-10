@@ -102,28 +102,36 @@ if uploaded_file:
     st.pyplot(fig2)
 
     # Optional: Predict future price using user input
-    st.subheader("🔮 Predict Future Price from Input")
+
+    st.subheader("🔮 Predict Future Price from Your Stats Input")
     prev_close = st.number_input("Previous Close", min_value=0.0)
     open_price = st.number_input("Open", min_value=0.0)
     high_price = st.number_input("High", min_value=0.0)
     low_price = st.number_input("Low", min_value=0.0)
     volume = st.number_input("Volume", min_value=0.0)
 
-    if st.button("Predict Next Price"):
-        # Build input in full 6-feature format
-        user_input_raw = [open_price, high_price, low_price, prev_close, 0.0, volume]
-        user_input_scaled = scaler.transform([user_input_raw])[0][3]  # Extract scaled 'close' value
+    if st.button("Predict Future Price"):
+        # Manually build the input row (same order as numeric_cols)
+        user_input = [open_price, high_price, low_price, prev_close, 0.0, volume]
+        user_scaled = scaler.transform([user_input])[0]
 
-        # Get last 9 closes from data
-        last_sequence = data[-(time_step - 1):].flatten().tolist()
-        last_sequence.append(user_input_scaled)  # Append user's close input to form full sequence
+        # Use only the scaled 'close' value (index 3)
+        user_close_scaled = user_scaled[3]
 
-        final_input = np.array(last_sequence).reshape(1, time_step, 1)
+        # Get last (time_step - 1) close prices from the dataset
+        recent_closes = df["close"].values[-(time_step - 1):].tolist()
 
-        prediction_scaled = model.predict(final_input)
+        # Append the user's scaled close as the 10th value
+        input_sequence = np.array(recent_closes + [user_close_scaled]).reshape(1, time_step, 1)
 
-        predicted_price = scaler.inverse_transform(
-            np.concatenate((prediction_scaled, np.zeros((1, len(numeric_cols) - 1))), axis=1)
-        )[0, 0]
+        # Predict the next closing price
+        prediction_scaled = model.predict(input_sequence)
 
-        st.success(f"📈 Predicted Price: **{predicted_price:.2f}**")
+        # Inverse transform the predicted 'close' only
+        padded_prediction = np.concatenate(
+            (np.zeros((1, 3)), prediction_scaled, np.zeros((1, len(numeric_cols) - 4))), axis=1
+        )
+        predicted_price = scaler.inverse_transform(padded_prediction)[0][3]
+
+        st.success(f"📈 Predicted Future Closing Price: **{predicted_price:.2f}**")
+
